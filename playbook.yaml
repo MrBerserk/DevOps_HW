@@ -1,0 +1,42 @@
+---
+- name: Configure remote server
+  hosts: remote_server
+  become: yes
+
+  vars:
+    username: exampleuser
+    ssh_key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+    directory_path: /opt/exampledir
+
+  tasks:
+    - name: Create user
+      user:
+        name: "{{ username }}"
+        state: present
+
+    - name: Add SSH key for user
+      authorized_key:
+        user: "{{ username }}"
+        key: "{{ ssh_key }}"
+
+    - name: Disable password authentication
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+      notify:
+        - Restart SSH
+
+    - name: Create directory
+      file:
+        path: "{{ directory_path }}"
+        state: directory
+        owner: "{{ username }}"
+        group: "{{ username }}"
+        mode: '0755'
+
+  handlers:
+    - name: Restart SSH
+      service:
+        name: sshd
+        state: restarteds

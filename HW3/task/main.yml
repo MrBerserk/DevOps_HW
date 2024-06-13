@@ -1,0 +1,31 @@
+---
+- name: Create a new user
+  user:
+    name: "{{ username }}"
+    state: present
+
+- name: Set up SSH authorized_keys
+  authorized_key:
+    user: "{{ username }}"
+    state: present
+    key: "{{ lookup('file', user_public_key) }}"
+
+- name: Disable password authentication
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PasswordAuthentication'
+    line: 'PasswordAuthentication no'
+    state: present
+
+- name: Restart SSH to apply changes
+  service:
+    name: ssh
+    state: restarted
+
+- name: Create directory in /opt/ with user permissions
+  file:
+    path: "/opt/{{ username }}"
+    state: directory
+    owner: "{{ username }}"
+    group: "{{ username }}"
+    mode: '0755'
